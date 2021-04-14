@@ -9,24 +9,14 @@ using namespace std;
 struct Node;
 typedef Node* node_pointer;
 struct Node{
-    // you can add attributes here
     node_pointer left;
     node_pointer right;
     unsigned char character;
     int freq;
-    node_pointer parent;
-    string trieName;
     
     Node() {}
-    Node(unsigned char c, int f, node_pointer l = nullptr, node_pointer r = nullptr, string str = "") : character(c), left(l), right(r), freq(f), trieName(str) {}
-    void addParent(node_pointer parentNode) {
-        parent = parentNode;
-    }
+    Node(unsigned char c, int f, node_pointer l = nullptr, node_pointer r = nullptr) : character(c), left(l), right(r), freq(f) {}
 };
-
-// int comp(node_pointer a, node_pointer b){
-//     return -(a->freq - b->freq);
-// }
 
 
 void makeFreqArray(string text, vector<int> & alphabetFreq) {
@@ -46,43 +36,25 @@ double floor(double n) {
 }
 
 void fixUp(vector<node_pointer> & minHeap) {
-    double i = minHeap.size() - 1;
-    double parentK = floor((i - 1)/2);
+    double k = minHeap.size() - 1;
+    double parentK = floor((k - 1)/2);
 
-    cout << "START ----> i: " << i << " parentK: " << parentK << endl;
-    for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ":" << minHeap[i]->freq << endl;
-    }
-
-    while (( parentK >= 0) && (minHeap[parentK]->freq > minHeap[i]->freq)) {
-        auto tmp = minHeap[i];
-        minHeap[i] = minHeap[parentK];
+    while (( parentK >= 0) && (minHeap[parentK]->freq > minHeap[k]->freq)) {
+        auto tmp = minHeap[k];
+        minHeap[k] = minHeap[parentK];
         minHeap[parentK] = tmp;
-        i = parentK;
-        parentK = floor((i - 1)/2);
-
-        cout << "LOOP ---> i: " << i << " parentK: " << parentK << endl;
-
-        for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ":" << minHeap[i]->freq << endl;
-        }
-    }
-    
-    cout << "END" << endl;
-    for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ":" << minHeap[i]->freq << endl;
+        k = parentK;
+        parentK = floor((k - 1)/2);
     }
 }
 
 void insertHeap(vector<node_pointer> & minHeap, node_pointer node) {
     minHeap.push_back(node);
-    //cout << "minHeap size: " << minHeap.size() << endl;
     fixUp(minHeap);
 }
 
 void insertHeap(vector<node_pointer> & minHeap, node_pointer T1, node_pointer T2) {
-    cout << "triename = " << T1->trieName + T2->trieName << endl;
-    node_pointer Trie = new Node(char(0), T1->freq + T2->freq, T1, T2, T1->trieName + T2->trieName);
+    node_pointer Trie = new Node(char(0), T1->freq + T2->freq, T1, T2);
     insertHeap(minHeap, Trie);
 }
 
@@ -125,7 +97,7 @@ vector<node_pointer> makeInitHeap(vector<int> & alphabetFreq) {
         if (alphabetFreq[i] == 0) {
             continue;
         }
-        node_pointer node = new Node(char(i), alphabetFreq[i], nullptr, nullptr, string(1,char(i)));
+        node_pointer node = new Node(char(i), alphabetFreq[i], nullptr, nullptr);
         insertHeap(minHeap, node);
     }
 
@@ -133,22 +105,25 @@ vector<node_pointer> makeInitHeap(vector<int> & alphabetFreq) {
 }
 
 
-void printTrie(node_pointer finalTrie) {
+void printTrie(node_pointer finalTrie, int depth, vector<string> & alphabetEncode, string encode = "") {
     if (finalTrie->character == char(0)) {
-        cout << "*" << endl;
+        depth++;
         if (finalTrie->left != nullptr) {
-            printTrie(finalTrie->left);
+            printTrie(finalTrie->left, depth, alphabetEncode, encode.append("0"));
         }
+
         if (finalTrie->right != nullptr) {
-            printTrie(finalTrie->right);
+            encode.pop_back();
+            printTrie(finalTrie->right, depth, alphabetEncode, encode.append("1"));
         }
     }
 
     else {
-        cout << finalTrie->character << " ";
+        cout << finalTrie->character << depth << " ";
+        alphabetEncode[finalTrie->character] = encode;
     }
-    
 }
+
 
 //----------------------------------------------------//
 // main                                               //
@@ -159,41 +134,24 @@ int main(){
     vector<int> alphabetFreq = vector<int>(256);
     makeFreqArray(text, alphabetFreq);
     vector<node_pointer> minHeap = makeInitHeap(alphabetFreq);
-    // for(int i = 0; i < alphabetFreq.size(); i++) {
-    //     if (alphabetFreq[i] != 0) {
-    //         cout << char(i) << ":" << alphabetFreq[i] << ", ";
-    //     }
-    // }
-
-    // cout << endl;
-    cout << "minHeap:" << endl;
-    for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ": " << minHeap[i]->freq << ", ";
-    }
-    cout << endl;
 
     while (minHeap.size() > 1) {
         node_pointer T1 = deleteMin(minHeap);
         node_pointer T2 = deleteMin(minHeap);
         insertHeap(minHeap, T1, T2);
-       
-        for (int i = 0; i < minHeap.size(); i++) {
-            cout << minHeap[i]->trieName << ": " << minHeap[i]->freq << ", ";
-        }
-        cout << endl;
     }
 
-    for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ": " << minHeap[i]->freq << ", ";
-    }
-    cout << endl;
 
     auto finalTrie = deleteMin(minHeap);
-    for (int i = 0; i < minHeap.size(); i++) {
-        cout << minHeap[i]->trieName << ": " << minHeap[i]->freq << ", ";
-    }
+
+    vector<string> alphabetEncode = vector<string>(256, "");
+    // Prints c_i d_i pairs
+    printTrie(finalTrie, 0, alphabetEncode);
     cout << endl;
 
-    printTrie(finalTrie);
-    // print out the encodings and coded text
+    // Encoded text
+    int len = text.length();
+    for (int i = 0; i < len; i++) {
+        cout << alphabetEncode[text[i]];
+    }
 }
